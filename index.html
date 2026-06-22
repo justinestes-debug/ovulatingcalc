@@ -683,5 +683,14 @@
     // Initial render on page load
     update();
   </script>
+
+<!-- STICKY BOTTOM AD -->
+<div id="sticky-ad-bar" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#fff;border-top:1px solid #e5e7eb;padding:6px 12px;text-align:center;box-shadow:0 -2px 8px rgba(0,0,0,0.08);">
+  <button onclick="document.getElementById('sticky-ad-bar').style.display='none'" style="position:absolute;top:4px;right:8px;background:none;border:none;font-size:16px;cursor:pointer;color:#9ca3af;" aria-label="Close ad">&#x2715;</button>
+  <!-- Replace with Ezoic/AdSense sticky unit (320x50 mobile / 728x90 desktop) -->
+  <div style="display:inline-block;min-width:320px;height:50px;background:#f3f4f6;line-height:50px;font-size:11px;color:#9ca3af;font-family:sans-serif;">Advertisement</div>
+</div>
+<style>body { padding-bottom: 70px; }</style>
+
 </body>
 </html>
