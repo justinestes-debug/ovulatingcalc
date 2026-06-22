@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ovulation Calculator — Free Fertility &amp; Cycle Tracker</title>
+  <meta name="description" content="Free ovulation calculator. Find your fertile window and peak ovulation day instantly. No signup, no data stored. 100% private.">
+  <meta name="keywords" content="ovulation calculator, fertility calculator, fertile window calculator, ovulation tracker">
+  <link rel="canonical" href="https://ovulatingcalc.cc">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: #fdf9ff;
+      color: #1f2937;
+    }
+
+    /* Custom range slider */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 4px;
+      background: #e8d5f5;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #9333ea;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(147,51,234,0.35);
+      transition: transform 0.15s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    input[type="range"]::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #9333ea;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 8px rgba(147,51,234,0.35);
+    }
+
+    /* Calendar grid */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+    }
+    .cal-hdr {
+      text-align: center;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #a78bfa;
+      padding: 4px 0 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .cal-day {
+      aspect-ratio: 1 / 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 0.8rem;
+      font-weight: 500;
+      position: relative;
+      cursor: default;
+      user-select: none;
+      transition: transform 0.12s;
+    }
+    .cal-day:hover { transform: scale(1.08); }
+    .cal-day-empty { pointer-events: none; }
+
+    /* Day type colors */
+    .day-normal      { background: #f3f4f6; color: #4b5563; }
+    .day-period      { background: #f43f5e; color: #fff; font-weight: 700; }
+    .day-fertile     { background: #a7f3d0; color: #065f46; }
+    .day-ovulation   { background: #10b981; color: #fff; font-weight: 800; }
+    .day-next-period { background: #fecdd3; color: #9f1239; border: 2px solid #f43f5e; }
+    .day-today       { box-shadow: 0 0 0 2.5px #8b5cf6, 0 0 0 4px rgba(139,92,246,0.15); }
+
+    .star-badge {
+      font-size: 0.52rem;
+      line-height: 1;
+      display: block;
+      margin-bottom: 1px;
+    }
+
+    /* Cards */
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 2px 16px rgba(139,92,246,0.07);
+      border: 1px solid #ede9fe;
+    }
+
+    /* Section heading */
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #581c87;
+      margin-bottom: 16px;
+    }
+
+    /* Summary stat blocks */
+    .stat-block {
+      background: #fff;
+      border-radius: 14px;
+      padding: 12px 10px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .stat-label {
+      font-size: 0.62rem;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      font-size: 0.78rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    /* Affiliate cards */
+    .affiliate-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 12px 16px;
+      text-decoration: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      transition: box-shadow 0.2s, transform 0.2s;
+      border: 1px solid #f3f4f6;
+    }
+    .affiliate-card:hover {
+      box-shadow: 0 6px 20px rgba(139,92,246,0.14);
+      transform: translateY(-1px);
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: slideUp 0.3s ease both; }
+
+    /* Responsive: tighter on very small screens */
+    @media (max-width: 360px) {
+      .cal-day { font-size: 0.7rem; }
+      .star-badge { font-size: 0.45rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  PRIVACY BANNER                                            -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <div style="background:#f5f0ff;border-bottom:1px solid #ddd6fe;padding:9px 16px;text-align:center;">
+    <span style="font-size:0.8rem;color:#6d28d9;font-weight:500;">
+      🔒 All calculations happen entirely in your browser. No data is ever stored or transmitted.
+    </span>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  HEADER                                                    -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <header style="background:linear-gradient(135deg,#f5f0ff 0%,#fce7f3 100%);padding:36px 16px 32px;text-align:center;">
+    <div style="font-size:2.4rem;margin-bottom:10px;">🌸</div>
+    <h1 style="font-size:1.65rem;font-weight:800;color:#581c87;margin-bottom:6px;letter-spacing:-0.02em;">
+      Ovulation Calculator
+    </h1>
+    <p style="font-size:0.88rem;color:#7c3aed;opacity:0.85;">
+      Free fertility tracker &mdash; private, instant, no signup required
+    </p>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  ADSENSE PLACEHOLDER — TOP (commented out)                 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--
+  <div style="max-width:640px;margin:16px auto;padding:0 16px;">
+    <div style="background:#f9fafb;border:2px dashed #e5e7eb;border-radius:16px;min-height:90px;display:flex;align-items:center;justify-content:center;color:#d1d5db;font-size:0.78rem;text-align:center;">
+      <!-- AdSense Top Banner Slot
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="1111111111"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      -->
+    </div>
+  </div>
+  -->
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  MAIN CONTENT                                              -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <main style="max-width:640px;margin:0 auto;padding:20px 16px 32px;display:flex;flex-direction:column;gap:18px;">
+
+    <!-- INPUT CARD -->
+    <div class="card">
+      <h2 class="section-title">📅 Enter Your Cycle Details</h2>
+
+      <!-- LMP Date Picker -->
+      <div style="margin-bottom:22px;">
+        <label style="display:block;font-size:0.84rem;font-weight:600;color:#374151;margin-bottom:8px;">
+          First day of your last period
+        </label>
+        <input
+          type="date"
+          id="lmpDate"
+          style="width:100%;border:2px solid #ddd6fe;border-radius:12px;padding:11px 14px;font-size:0.95rem;color:#1f2937;background:#faf8ff;outline:none;transition:border-color 0.2s;cursor:pointer;"
+          onfocus="this.style.borderColor='#8b5cf6'"
+          onblur="this.style.borderColor='#ddd6fe'"
+        />
+      </div>
+
+      <!-- Cycle Length Slider -->
+      <div>
+        <label style="display:block;font-size:0.84rem;font-weight:600;color:#374151;margin-bottom:10px;">
+          Average cycle length:&nbsp;
+          <span id="cycleLenDisplay" style="color:#7c3aed;font-weight:800;font-size:1.05rem;">28</span>
+          <span style="color:#6b7280;font-weight:500;"> days</span>
+        </label>
+        <input type="range" id="cycleLen" min="21" max="35" value="28" />
+        <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#9ca3af;margin-top:6px;">
+          <span>21 days (shorter)</span>
+          <span>(longer) 35 days</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUMMARY PANEL -->
+    <div id="summaryPanel" style="display:none;" class="animate-in">
+      <div style="background:linear-gradient(135deg,#f5f0ff,#fce7f3);border-radius:20px;padding:20px;border:1px solid #ddd6fe;">
+        <h2 class="section-title" style="margin-bottom:14px;">📋 Your Fertility Summary</h2>
+
+        <!-- Stat blocks row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+          <div class="stat-block">
+            <div class="stat-label">Fertile Window</div>
+            <div id="sumFertile" class="stat-value" style="color:#059669;"></div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-label">Peak Ovulation</div>
+            <div id="sumOvulation" class="stat-value" style="color:#10b981;"></div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-label">Next Period</div>
+            <div id="sumNextPeriod" class="stat-value" style="color:#f43f5e;"></div>
+          </div>
+        </div>
+
+        <!-- Descriptive lines -->
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div id="sumLine1" style="background:#fff;border-radius:10px;padding:9px 13px;font-size:0.82rem;color:#374151;border-left:3px solid #10b981;"></div>
+          <div id="sumLine2" style="background:#fff;border-radius:10px;padding:9px 13px;font-size:0.82rem;color:#374151;border-left:3px solid #10b981;"></div>
+          <div id="sumLine3" style="background:#fff;border-radius:10px;padding:9px 13px;font-size:0.82rem;color:#374151;border-left:3px solid #f43f5e;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALENDAR SECTION -->
+    <div id="calendarSection" style="display:none;" class="animate-in">
+
+      <!-- Month 1 -->
+      <div class="card" style="margin-bottom:16px;">
+        <h3 id="month1Title" class="section-title"></h3>
+        <div class="cal-grid">
+          <div class="cal-hdr">Su</div>
+          <div class="cal-hdr">Mo</div>
+          <div class="cal-hdr">Tu</div>
+          <div class="cal-hdr">We</div>
+          <div class="cal-hdr">Th</div>
+          <div class="cal-hdr">Fr</div>
+          <div class="cal-hdr">Sa</div>
+        </div>
+        <div id="month1Grid" class="cal-grid"></div>
+      </div>
+
+      <!-- Month 2 -->
+      <div class="card">
+        <h3 id="month2Title" class="section-title"></h3>
+        <div class="cal-grid">
+          <div class="cal-hdr">Su</div>
+          <div class="cal-hdr">Mo</div>
+          <div class="cal-hdr">Tu</div>
+          <div class="cal-hdr">We</div>
+          <div class="cal-hdr">Th</div>
+          <div class="cal-hdr">Fr</div>
+          <div class="cal-hdr">Sa</div>
+        </div>
+        <div id="month2Grid" class="cal-grid"></div>
+      </div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="card">
+      <h3 style="font-size:0.85rem;font-weight:700;color:#581c87;margin-bottom:12px;">Calendar Key</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#f43f5e;flex-shrink:0;"></div>
+          <span style="font-size:0.78rem;color:#4b5563;">Period days (1–5)</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#a7f3d0;flex-shrink:0;"></div>
+          <span style="font-size:0.78rem;color:#4b5563;">Fertile window</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#10b981;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:0.7rem;color:#fff;">★</span>
+          </div>
+          <span style="font-size:0.78rem;color:#4b5563;">Peak ovulation ★</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#fecdd3;border:2px solid #f43f5e;flex-shrink:0;"></div>
+          <span style="font-size:0.78rem;color:#4b5563;">Next period start</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#f3f4f6;box-shadow:0 0 0 2.5px #8b5cf6;flex-shrink:0;"></div>
+          <span style="font-size:0.78rem;color:#4b5563;">Today</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!--  ADSENSE PLACEHOLDER — MID (commented out)                 -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!--
+    <div style="background:#f9fafb;border:2px dashed #e5e7eb;border-radius:16px;min-height:90px;display:flex;align-items:center;justify-content:center;color:#d1d5db;font-size:0.78rem;text-align:center;">
+      <!-- AdSense Mid Content Slot
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="2222222222"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      -->
+    </div>
+    -->
+
+    <!-- AFFILIATE SECTION -->
+    <div style="background:linear-gradient(135deg,#f5f0ff 0%,#fff7ed 100%);border-radius:20px;padding:20px;border:1px solid #ddd6fe;">
+      <h2 style="font-size:1rem;font-weight:700;color:#581c87;margin-bottom:4px;">🛒 Fertility Essentials</h2>
+      <p style="font-size:0.73rem;color:#9ca3af;margin-bottom:16px;">
+        Curated products that may support your fertility journey &mdash; affiliate links help keep this tool free.
+      </p>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+
+        <!-- Ovulation Test Strips -->
+        <a class="affiliate-card"
+           href="https://www.amazon.com/dp/B07D3YJLK6?tag=YOUR-AFFILIATE-TAG-20"
+           target="_blank"
+           rel="noopener noreferrer sponsored">
+          <span style="font-size:1.8rem;line-height:1;flex-shrink:0;">🧪</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.85rem;font-weight:600;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              Ovulation Test Strips (50-pack)
+            </div>
+            <div style="font-size:0.72rem;color:#9ca3af;margin-top:2px;">
+              Track your LH surge at home · Amazon
+            </div>
+          </div>
+          <span style="color:#8b5cf6;font-size:1.1rem;flex-shrink:0;">→</span>
+        </a>
+
+        <!-- Prenatal Vitamins -->
+        <a class="affiliate-card"
+           href="https://www.amazon.com/dp/B002RL8FCU?tag=YOUR-AFFILIATE-TAG-20"
+           target="_blank"
+           rel="noopener noreferrer sponsored">
+          <span style="font-size:1.8rem;line-height:1;flex-shrink:0;">💊</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.85rem;font-weight:600;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              Prenatal Vitamins with Folate
+            </div>
+            <div style="font-size:0.72rem;color:#9ca3af;margin-top:2px;">
+              Essential nutrients before &amp; during pregnancy · Amazon
+            </div>
+          </div>
+          <span style="color:#8b5cf6;font-size:1.1rem;flex-shrink:0;">→</span>
+        </a>
+
+        <!-- Basal Body Thermometer -->
+        <a class="affiliate-card"
+           href="https://www.amazon.com/dp/B004ZFUK5G?tag=YOUR-AFFILIATE-TAG-20"
+           target="_blank"
+           rel="noopener noreferrer sponsored">
+          <span style="font-size:1.8rem;line-height:1;flex-shrink:0;">🌡️</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.85rem;font-weight:600;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              Basal Body Thermometer (BBT)
+            </div>
+            <div style="font-size:0.72rem;color:#9ca3af;margin-top:2px;">
+              High-precision 2-decimal reading for BBT charting · Amazon
+            </div>
+          </div>
+          <span style="color:#8b5cf6;font-size:1.1rem;flex-shrink:0;">→</span>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- MEDICAL DISCLAIMER -->
+    <div style="background:#fffbeb;border-radius:16px;padding:14px 16px;border:1px solid #fde68a;">
+      <p style="font-size:0.81rem;color:#92400e;line-height:1.6;">
+        ⚕️ <strong>Medical Disclaimer:</strong> This calculator is for informational purposes only.
+        Cycle predictions are estimates based on average patterns and may not reflect your individual biology.
+        Always consult a qualified healthcare provider for personalized medical advice, diagnosis, or treatment.
+      </p>
+    </div>
+
+    <!-- PRIVACY POLICY -->
+    <div style="background:#f9fafb;border-radius:16px;padding:18px 20px;border:1px solid #e5e7eb;">
+      <h2 style="font-size:0.9rem;font-weight:700;color:#374151;margin-bottom:8px;">🔒 Privacy Policy</h2>
+      <p style="font-size:0.8rem;color:#6b7280;line-height:1.65;">
+        We do not collect, store, or transmit any personal health data. All calculations are performed
+        locally in your browser using JavaScript. No cookies are used, no analytics or tracking scripts
+        are loaded, and no network requests are made for any calculations. This tool works entirely
+        offline once the page has loaded. Your health information stays completely private &mdash; always.
+      </p>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  FOOTER                                                    -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <footer style="text-align:center;padding:28px 16px;font-size:0.74rem;color:#9ca3af;border-top:1px solid #f3f4f6;">
+    <p>© 2025 OvulationCalc.com &middot; Free ovulation &amp; fertility calculator</p>
+    <p style="margin-top:4px;">No data collected &middot; No signup required &middot; Built with 🌸 for privacy</p>
+  </footer>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!--  JAVASCRIPT — 100% CLIENT-SIDE, ZERO EXTERNAL CALLS        -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <script>
+    'use strict';
+
+    // ─────────────────────────────────────────────────────────────
+    //  Constants
+    // ─────────────────────────────────────────────────────────────
+    const MONTH_NAMES = [
+      'January','February','March','April','May','June',
+      'July','August','September','October','November','December'
+    ];
+
+    // ─────────────────────────────────────────────────────────────
+    //  DOM refs
+    // ─────────────────────────────────────────────────────────────
+    const elLmp          = document.getElementById('lmpDate');
+    const elCycleLen     = document.getElementById('cycleLen');
+    const elCycleLenDisp = document.getElementById('cycleLenDisplay');
+    const elSummary      = document.getElementById('summaryPanel');
+    const elCalSection   = document.getElementById('calendarSection');
+
+    // ─────────────────────────────────────────────────────────────
+    //  Date helpers (all timezone-safe — work with local dates)
+    // ─────────────────────────────────────────────────────────────
+
+    /** Return YYYY-MM-DD string for a local Date */
+    function toInputDate(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    /** Parse a YYYY-MM-DD string as a local Date (no UTC shift) */
+    function parseLocalDate(str) {
+      const [y, m, d] = str.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    /** Add n calendar days to a Date, returning a new Date */
+    function addDays(date, n) {
+      const d = new Date(date.getTime());
+      d.setDate(d.getDate() + n);
+      return d;
+    }
+
+    /** True if two Dates share the same calendar day */
+    function sameDay(a, b) {
+      return a.getFullYear() === b.getFullYear()
+          && a.getMonth()    === b.getMonth()
+          && a.getDate()     === b.getDate();
+    }
+
+    /** Format as "Jun 14" */
+    function fmtShort(d) {
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    /** Format as "Sunday, June 14, 2026" */
+    function fmtLong(d) {
+      return d.toLocaleDateString('en-US', {
+        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  Cycle calculation
+    //
+    //  Standard luteal-phase formula:
+    //    • Ovulation ≈ (cycleLength − 14) days after LMP start
+    //    • Fertile window: 5 days before ovulation through ovulation day
+    //    • Period: days 1–5 (LMP through LMP+4)
+    //    • Next period: LMP + cycleLength
+    // ─────────────────────────────────────────────────────────────
+
+    function computeCycle(lmp, cycleLen) {
+      const ovulation    = addDays(lmp, cycleLen - 14);
+      const fertileStart = addDays(ovulation, -5);
+      const fertileEnd   = ovulation;                  // inclusive
+      const nextPeriod   = addDays(lmp, cycleLen);
+      return { lmp, cycleLen, ovulation, fertileStart, fertileEnd, nextPeriod };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  Day type classification
+    //  Priority: period > ovulation > fertile > next-period-start
+    // ─────────────────────────────────────────────────────────────
+
+    function classifyDay(date, cycles) {
+      for (const c of cycles) {
+        // Period: days 1–5 of cycle (LMP is day 1)
+        for (let i = 0; i < 5; i++) {
+          if (sameDay(date, addDays(c.lmp, i))) return 'period';
+        }
+        // Peak ovulation
+        if (sameDay(date, c.ovulation)) return 'ovulation';
+        // Fertile window (days before ovulation)
+        for (let i = 1; i <= 5; i++) {
+          if (sameDay(date, addDays(c.ovulation, -i))) return 'fertile';
+        }
+        // Next period (first day — special highlight so user knows it's coming)
+        if (sameDay(date, c.nextPeriod)) return 'next-period';
+      }
+      return null;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  Calendar renderer
+    // ─────────────────────────────────────────────────────────────
+
+    function buildMonth(gridId, year, month, cycles, today) {
+      const grid = document.getElementById(gridId);
+      grid.innerHTML = '';
+
+      const firstDow   = new Date(year, month, 1).getDay();  // 0=Sun
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      // Leading blank cells to align first day
+      for (let i = 0; i < firstDow; i++) {
+        const blank = document.createElement('div');
+        blank.className = 'cal-day cal-day-empty';
+        grid.appendChild(blank);
+      }
+
+      // Day cells
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month, d);
+        const type = classifyDay(date, cycles);
+        const isToday = sameDay(date, today);
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-day';
+
+        // Apply type class
+        const typeClass = {
+          'period':      'day-period',
+          'ovulation':   'day-ovulation',
+          'fertile':     'day-fertile',
+          'next-period': 'day-next-period',
+        }[type] || 'day-normal';
+        cell.classList.add(typeClass);
+
+        if (isToday) cell.classList.add('day-today');
+
+        // Inner content
+        if (type === 'ovulation') {
+          cell.innerHTML = `<span class="star-badge">★</span><span>${d}</span>`;
+        } else {
+          cell.textContent = d;
+        }
+
+        // Accessible tooltip
+        const tooltips = {
+          'period':      'Period day',
+          'ovulation':   '★ Peak ovulation day',
+          'fertile':     'Fertile window',
+          'next-period': 'Next period starts',
+        };
+        if (tooltips[type]) cell.title = tooltips[type];
+        if (isToday) cell.title = (cell.title ? cell.title + ' · ' : '') + 'Today';
+
+        grid.appendChild(cell);
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  Main update — called on any input change
+    // ─────────────────────────────────────────────────────────────
+
+    function update() {
+      const lmpStr  = elLmp.value;
+      if (!lmpStr) return;
+
+      const cycleLen = parseInt(elCycleLen.value, 10);
+      const lmp      = parseLocalDate(lmpStr);
+      const today    = new Date();
+
+      // Compute current cycle + the following cycle
+      const c1     = computeCycle(lmp, cycleLen);
+      const c2     = computeCycle(c1.nextPeriod, cycleLen);
+      const cycles = [c1, c2];
+
+      // ── Update summary ──────────────────────────────────────────
+
+      document.getElementById('sumFertile').textContent =
+        `${fmtShort(c1.fertileStart)} – ${fmtShort(c1.fertileEnd)}`;
+      document.getElementById('sumOvulation').textContent = fmtShort(c1.ovulation);
+      document.getElementById('sumNextPeriod').textContent = fmtShort(c1.nextPeriod);
+
+      document.getElementById('sumLine1').innerHTML =
+        `🟢 <strong>Your next fertile window:</strong> ${fmtShort(c1.fertileStart)} – ${fmtShort(c1.fertileEnd)}`;
+      document.getElementById('sumLine2').innerHTML =
+        `⭐ <strong>Peak ovulation day:</strong> ${fmtLong(c1.ovulation)}`;
+      document.getElementById('sumLine3').innerHTML =
+        `🩸 <strong>Next period expected:</strong> ${fmtLong(c1.nextPeriod)}`;
+
+      elSummary.style.display    = 'block';
+      elCalSection.style.display = 'block';
+
+      // ── Build calendars: LMP month + following month ──────────
+
+      const m1Y = lmp.getFullYear();
+      const m1M = lmp.getMonth();
+      const m2M = (m1M + 1) % 12;
+      const m2Y = m1M === 11 ? m1Y + 1 : m1Y;
+
+      document.getElementById('month1Title').textContent = `${MONTH_NAMES[m1M]} ${m1Y}`;
+      document.getElementById('month2Title').textContent = `${MONTH_NAMES[m2M]} ${m2Y}`;
+
+      buildMonth('month1Grid', m1Y, m1M, cycles, today);
+      buildMonth('month2Grid', m2Y, m2M, cycles, today);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  Initialization
+    // ─────────────────────────────────────────────────────────────
+
+    // Default LMP to today
+    elLmp.value = toInputDate(new Date());
+
+    // Slider sync
+    elCycleLen.addEventListener('input', () => {
+      elCycleLenDisp.textContent = elCycleLen.value;
+      update();
+    });
+
+    // Date change
+    elLmp.addEventListener('change', update);
+
+    // Initial render on page load
+    update();
+  </script>
+</body>
+</html>
